@@ -32,11 +32,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser({ token });
   };
 
-  // run once on mount
   checkAuth();
   setLoading(false);
 
-  // 👇 listen for changes in OTHER tabs
   const handleStorageChange = () => {
     checkAuth();
   };
@@ -58,7 +56,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('role');
     setUser(null);
-    // router.push('/login');
   };
 
   return (

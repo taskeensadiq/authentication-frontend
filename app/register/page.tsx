@@ -1,16 +1,32 @@
 'use client';
+
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
+import {
+  TextField,
+  Button,
+  Card,
+  Typography,
+  Box,
+  MenuItem,
+  InputAdornment,
+  IconButton,
+  Alert,
+  Grid
+} from '@mui/material';
+
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import CircularProgress from '@mui/material/CircularProgress';
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  // Show/Hide States
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [role, setRole] = useState('user');
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
@@ -22,7 +38,7 @@ export default function RegisterPage() {
     setStatus(null);
 
     if (password !== confirmPassword) {
-      setStatus({ type: 'error', text: "Passwords do not match!" });
+      setStatus({ type: 'error', text: 'Passwords do not match!' });
       return;
     }
 
@@ -41,119 +57,136 @@ export default function RegisterPage() {
       if (res.ok) {
         if (userRole) {
           localStorage.setItem('role', userRole);
-          console.log('Registered user role:', userRole);
         }
 
-        setStatus({ type: 'success', text: 'Account created! Redirecting to login...' });
+        setStatus({ type: 'success', text: 'Account created! Redirecting...' });
+
         setTimeout(() => router.push('/login'), 2000);
       } else {
-        // Specifically check for conflict or existing user message
-        const errorMessage = res.status === 409
-          ? "This email is already registered."
-          : (data.message || 'Registration failed');
+        const errorMessage =
+          res.status === 409
+            ? 'This email is already registered.'
+            : data.message || 'Registration failed';
 
         setStatus({ type: 'error', text: errorMessage });
       }
-    } catch (err) {
+    } catch {
       setStatus({ type: 'error', text: 'Server connection failed.' });
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl border border-slate-100">
-        <h1 className="text-2xl font-bold mb-2 text-center text-slate-800">Create Account</h1>
-        <p className="text-center text-slate-500 mb-6 text-sm">Join us to manage your dashboard</p>
-
-        {status && (
-          <div className={`mb-4 p-3 rounded-lg text-sm font-medium ${status.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
-            }`}>
-            {status.text}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-semibold text-slate-600 uppercase">Email Address</label>
-            <input
-              type="email"
-              placeholder="name@company.com"
-              onChange={(e) => setEmail(e.target.value)}
-              className="p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-              required
-            />
-          </div>
-
-          {/* Password Field */}
-          <div className="flex flex-col gap-1 relative">
-            <label className="text-xs font-semibold text-slate-600 uppercase">Password</label>
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder=""
+   return (
+    <>
+     <Grid container sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 2, minHeight: '100vh'}}>
+        <Grid item xs={12} md={5} lg={4}>
+          <Card sx={{ p: 4, borderRadius: 4, background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(10px)', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', border: '1px solid rgba(226,232,240,0.7)' }}>
+            <Box sx={{ textAlign: 'center', mb: 3 }}>
+              <Typography variant="h5" sx={{ fontWeight: 800, color: '#0f172a' }}>
+                Create Account
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
+                Just to Manage Your Dashboard
+              </Typography>
+            </Box>
+           <form onSubmit={handleSubmit}>
+              <TextField
+                fullWidth
+                label="Email Address"
+                type="email"
+                size="small"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                sx={{ mb: 2 }}
+                required
+              />
+              <TextField
+                fullWidth
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
+                size="small"
+                value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500 transition-all pr-10"
+                sx={{ mb: 2 }}
                 required
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => setShowPassword(!showPassword)}>
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-          </div>
-
-          {/* Confirm Password Field */}
-          <div className="flex flex-col gap-1 relative">
-            <label className="text-xs font-semibold text-slate-600 uppercase">Confirm Password</label>
-            <div className="relative">
-              <input
-                type={showConfirmPassword ? "text" : "password"}
-                placeholder=""
+              <TextField
+                fullWidth
+                label="Confirm Password"
+                type={showConfirmPassword ? 'text' : 'password'}
+                size="small"
+                value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500 transition-all pr-10"
+                sx={{ mb: 2 }}
                 required
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
+                        {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
               />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              >
-                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-          </div>
-
-            <div className="flex flex-col gap-1 relative">
-              <label className="text-xs font-semibold text-slate-600 uppercase">Enter Role</label>
-              <select
+              <TextField
+                fullWidth
+                select
+                label="Role"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                className="p-3 border rounded-lg"
+                size="small"
+                sx={{ mb: 3 }}
               >
-                <option value="user">user</option>
-                <option value="editor">editor</option>
-                <option value="admin">admin</option>
-              </select>
-            </div>
+                <MenuItem value="user">User</MenuItem>
+                <MenuItem value="editor">Editor</MenuItem>
+                <MenuItem value="admin">Admin</MenuItem>
+              </TextField>
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained" 
+                disabled={loading}
+                sx={{
+                  py: 1.2,
+                  fontWeight: 700,
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                  '&:hover': { opacity: 0.9 },
+                }}
+              >
+                {loading ? <CircularProgress size={20} sx={{ color: 'white' }} /> : 'Create Account'}
+              </Button>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed mt-2"
-          >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create Account'}
-          </button>
-        </form>
+              <Button
+                fullWidth
+                onClick={() => router.push('/login')}
+                sx={{
+                  mt: 2,
+                  textTransform: 'none',
+                  color: '#2563eb',
+                  fontWeight: 600,
+                }}
+              >
+                Already have an account? Login
+              </Button>
 
-        <p className="mt-6 text-center text-sm text-slate-600">
-          Already have an account? <a href="/login" className="text-blue-600 font-semibold hover:underline">Log in</a>
-        </p>
-      </div>
-    </main>
+            </form>
+
+          </Card>
+        </Grid>
+      </Grid>
+    </>
   );
 }

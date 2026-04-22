@@ -1,9 +1,9 @@
-import AuthGuard from '@/components/AuthGuard';
+// import AuthGuard from '@/components/AuthGuard';
 
-export default function InventoryDashboard({ children }: { children: React.ReactNode }) {
-  return (
-    <AuthGuard>
-        {children}
-    </AuthGuard>
-  );
-}
+// export default function InventoryDashboard({ children }: { children: React.ReactNode }) {
+//   return (
+//     <AuthGuard>
+//         {children}
+//     </AuthGuard>
+//   );
+// }

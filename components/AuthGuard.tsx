@@ -14,23 +14,14 @@ export default function AuthGuard({ children, allowedRoles }: { children: React.
       const token = localStorage.getItem('token');
       const role = localStorage.getItem('role'); 
 
-    //   if (!token) {
-    //     router.push('/login');
-    //   } else {
-    //     setIsAuthorized(true);
-    //   }
-    // };
-
     if (!token) {
         router.push('/login');
         return;
       }
 
-      // Role Check Logic
       if (allowedRoles && !allowedRoles.includes(role || '')) {
         setError(true);
-        // Optional: auto-redirect after 3 seconds
-        setTimeout(() => router.push('/dashboard'), 3000);
+        setTimeout(() => router.push('/products/crud'), 3000);
         return;
       }
 
@@ -40,7 +31,6 @@ export default function AuthGuard({ children, allowedRoles }: { children: React.
     checkAuth();
     
     window.addEventListener('storage', checkAuth);
-    // return () => window.removeEventListener('storage', checkAuth);
   }, [router]);
 
   if (!isAuthorized) {
