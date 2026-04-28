@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useRoles } from '@/context/RoleContext';
+import { UserRole } from '@/lib/permissions';
 import { useRouter } from 'next/navigation';
 import {
   TextField,
@@ -21,6 +23,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { login } = useAuth();
+  const { setRole } = useRoles();
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
 
@@ -35,13 +38,26 @@ export default function LoginPage() {
       });
 
       const data = await res.json();
-      const userRole = data.user?.role;
+      const rawRole = data.user?.role ?? data.role ?? [];
+
+      console.log('Raw role from response:', rawRole);
+
+      // const normalizeRole = (value: unknown): UserRole[] => {
+      //   const roles = Array.isArray(value) ? value : [value];
+      //   return roles.filter(
+      //     (role): role is UserRole =>
+      //       role === 'admin' || role === 'editor' || role === 'user'
+      //   );
+      // };
+
+      const userRole = rawRole;
 
       if (res.ok && data.access_token) {
-        login(data.access_token, data.user.role);
+        login(data.access_token, userRole);
+        setRole(userRole);
 
         if (userRole) {
-          localStorage.setItem('role', userRole);
+          localStorage.setItem('role', JSON.stringify(userRole));
         }
 
         router.push('/products/crud');
@@ -55,7 +71,7 @@ export default function LoginPage() {
 
   return (
     <>
-      <Grid container sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 2, minHeight: '100vh'}}>
+      <Grid container sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 2, minHeight: '100vh' }}>
         <Grid item xs={12} md={5} lg={4}>
           <Card sx={{ p: 4, borderRadius: 4, background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(10px)', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', border: '1px solid rgba(226,232,240,0.7)' }}>
             <Box sx={{ textAlign: 'center', mb: 3 }}>

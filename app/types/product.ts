@@ -9,8 +9,8 @@ export interface Product {
   justRestored?: boolean;
 }
 
-export interface ProductDTO {
-  name: string;
-  description: string;
-  editingId: string;
-}
+// export interface ProductDTO {
+//   name: string;
+//   description: string;
+//   editingId: string;
+// }

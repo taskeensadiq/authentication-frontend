@@ -4,24 +4,31 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
-export default function AuthGuard({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: string[] }) {
+export default function AuthGuard({
+  children,
+  allowedRoles,
+}: {
+  children: React.ReactNode;
+  allowedRoles?: string[];
+}) {
   const [isAuthorized, setIsAuthorized] = useState(false);
-  const [error, setError] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     const checkAuth = () => {
       const token = localStorage.getItem('token');
-      const role = localStorage.getItem('role'); 
+      const role = JSON.parse(localStorage.getItem('role') || '[]');
 
-    if (!token) {
+      if (!token) {
         router.push('/login');
         return;
       }
 
-      if (allowedRoles && !allowedRoles.includes(role || '')) {
-        setError(true);
-        setTimeout(() => router.push('/products/crud'), 3000);
+      if (
+        allowedRoles &&
+        !allowedRoles.some((r) => role.includes(r))
+      ) {
+        router.push('/products/crud');
         return;
       }
 
@@ -29,16 +36,16 @@ export default function AuthGuard({ children, allowedRoles }: { children: React.
     };
 
     checkAuth();
-    
     window.addEventListener('storage', checkAuth);
-  }, [router]);
+
+    return () => window.removeEventListener('storage', checkAuth);
+  }, [router, allowedRoles]);
 
   if (!isAuthorized) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
         <Loader2 className="w-10 h-10 animate-spin text-blue-600 mb-4" />
-        <h2 className="text-slate-600 font-medium">Verifying Session...</h2>
-        <p className="text-slate-400 text-sm">Please wait while we check your credentials.</p>
+        <h2>Verifying Session...</h2>
       </div>
     );
   }

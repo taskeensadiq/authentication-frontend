@@ -55,9 +55,11 @@ export default function RegisterPage() {
       const userRole = data.user?.role;
 
       if (res.ok) {
-        if (userRole) {
-          localStorage.setItem('role', userRole);
-        }
+        const normalizedRoles = Array.isArray(userRole)
+          ? userRole
+          : [userRole];
+
+        localStorage.setItem('role', JSON.stringify(normalizedRoles));
 
         setStatus({ type: 'success', text: 'Account created! Redirecting...' });
 

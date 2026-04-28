@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import ProductForm from '@/components/products/productForm';
 import { getProductById, updateProduct } from '@/app/services/productService';
-import { checkPermission, useCurrentRole } from '@/lib/permissions';
+import { checkPermission, getUserPermissions } from '@/lib/permissions';
+import { useRoles } from '@/context/RoleContext';
 
 export default function EditProductPage() {
   const router = useRouter();
@@ -17,7 +18,7 @@ export default function EditProductPage() {
       ? localStorage.getItem('token')
       : null;
 
-  const role = useCurrentRole();
+  const { role, loading } = useRoles();
 
   useEffect(() => {
     if (role !== null && !checkPermission(role, 'canEdit', 'edit products')) {
@@ -26,8 +27,13 @@ export default function EditProductPage() {
   }, [role, router]);
 
   useEffect(() => {
-    if (!id || !token) return;
+    if (loading) return; 
 
+    if (!id || !token) return;
+    const permissions = getUserPermissions(role);
+    if (!permissions?.canEdit) {
+      router.replace('/products/crud');
+    }
     const fetchData = async () => {
       const res = await getProductById(token, id);
       setInitialData(res);

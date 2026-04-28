@@ -7,14 +7,15 @@ import {
   toggleArchiveProduct,
   deleteProductPermanent
 } from '@/app/services/productService';
+import { updateUserRoles } from '@/app/services/roleService';
 import PaginationControls from '@/components/products/pagination'
 import { Button, Box, Typography } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import { checkPermission, useCurrentRole, getUserPermissions } from '@/lib/permissions';
-import { styled } from '@mui/material/styles';
-import Paper from '@mui/material/Paper';
+import { checkPermission, getUserPermissions } from '@/lib/permissions';
 import Grid from '@mui/material/Grid';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import RoleModal from '@/app/role/page';
+import { useRoles } from '@/context/RoleContext';
 
 export default function Page() {
   const router = useRouter();
@@ -30,9 +31,9 @@ export default function Page() {
     ? localStorage.getItem('token')
     : null;
 
-  const role = useCurrentRole();
+  const { role, setRole } = useRoles();
   const permissions = getUserPermissions(role);
-
+  const [open, setOpen] = useState(false);
   const { products, setProducts, meta } = useProducts(page, limit, status);
   const totalPages = meta.totalPages;
 
@@ -73,8 +74,14 @@ export default function Page() {
     );
   };
 
+  // useEffect(() => {
+  //   localStorage.setItem('role', JSON.stringify(role));
+  //   console.log('Current role:', role);
+  // }, [role]);
+
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('role');
     router.push('/login');
   };
 
@@ -97,7 +104,6 @@ export default function Page() {
           </Typography>
         </Grid>
 
-
         <Grid item xs={12} md={5} sx={{
           display: 'flex',
           justifyContent: {
@@ -106,6 +112,49 @@ export default function Page() {
           },
           gap: 2,
         }}>
+
+          <Button variant="outlined" onClick={() => setOpen(true)} sx={{
+            height: 50,
+            borderRadius: 2,
+            fontWeight: 600,
+            textTransform: 'none',
+            backgroundColor: 'white',
+            color: '#3b82f6',
+            borderColor: '#3b82f6',
+            '&:hover': {
+              backgroundColor: '#e0e7ff',
+              borderColor: '#3b82f6',
+            },
+          }} >
+            Role ({role.length})
+          </Button>
+
+          <RoleModal
+            open={open}
+            currentRoles={role}
+            onClose={() => setOpen(false)}
+            onConfirm={async (selectedRoles) => {
+              console.log('Selected roles:', selectedRoles);
+
+              if (!token) {
+                alert('Unable to update roles: missing auth token.');
+                return;
+              }
+
+              try {
+                const response = await updateUserRoles(token, selectedRoles);
+                if (response?.access_token) {
+                  localStorage.setItem('token', response.access_token);
+                }
+                setRole(selectedRoles);
+              } catch (error) {
+                console.error('Failed to update roles:', error);
+                alert('Could not save roles to the server. Please try again.');
+              } finally {
+                setOpen(false);
+              }
+            }}
+          />
           <Button
             variant="outlined"
             onClick={handleLogout}
@@ -116,9 +165,6 @@ export default function Page() {
               textTransform: 'none',
               color: '#ef4444',
               borderColor: '#ef4444',
-              // mr: 2,
-              // px: 3,
-              // py: 1.5,
               '&:hover': {
                 backgroundColor: '#fef2f2',
                 borderColor: '#dc2626',
@@ -127,37 +173,32 @@ export default function Page() {
           >
             Logout
           </Button>
-          <Button
-            disabled={!permissions.canCreate}
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => {
-              if (checkPermission(role, 'canCreate', 'add products')) {
-                router.push('/products/form');
-              }
-            }}
-            sx={{
-              height: 50,
-              backgroundColor: permissions.canCreate ? '#3b82f6' : '#94a3b8',
-              color: 'white',
-              // px: 4,
-              // py: 1.5,
-              borderRadius: 2,
-              fontWeight: 600,
-              textTransform: 'none',
-              boxShadow: permissions.canCreate
-                ? '0 4px 6px -1px rgba(59, 130, 246, 0.1), 0 2px 4px -1px rgba(59, 130, 246, 0.06)'
-                : 'none',
-              '&:hover': {
-                backgroundColor: permissions.canCreate ? '#2563eb' : '#94a3b8',
-              },
-              '&:active': {
-                backgroundColor: permissions.canCreate ? '#1d4ed8' : '#94a3b8',
-              }
-            }}
-          >
-            Add Product
-          </Button>
+          {permissions.canCreate && (
+            <Button
+              disabled={!permissions.canCreate}
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => router.push('/products/form')}
+              sx={{
+                height: 50,
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                borderRadius: 2,
+                fontWeight: 600,
+                textTransform: 'none',
+                boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.1), 0 2px 4px -1px rgba(59, 130, 246, 0.06)'
+                ,
+                '&:hover': {
+                  backgroundColor: '#2563eb',
+                },
+                '&:active': {
+                  backgroundColor: '#1d4ed8',
+                }
+              }}
+            >
+              Add Product
+            </Button>)}
+
         </Grid>
       </Grid>
 

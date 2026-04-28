@@ -20,14 +20,14 @@ export const getProducts = async (
   if (params.limit) query.set("limit", String(params.limit));
 
   if (params.status && params.status !== "all") {
-    query.set("status", params.status);  // This is the filter status
+    query.set("status", params.status);  
   }
 
   if (params.search) query.set("search", params.search);
 
   const url = `${API_URL}?${query.toString()}`;
 
-  console.log("Fetching products with URL: ", url);  // Log URL for debugging
+  console.log("Fetching products with URL: ", url);  
 
   const res = await fetch(url, {
     method: 'GET',
@@ -38,7 +38,7 @@ export const getProducts = async (
   });
 
   if (!res.ok) {
-    console.error(`Error: ${res.status} - ${res.statusText}`); // Log the error response
+    console.error(`Error: ${res.status} - ${res.statusText}`); 
     throw new Error('FETCH_FAILED');
   }
 

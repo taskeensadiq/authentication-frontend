@@ -1,5 +1,4 @@
 'use client';
-
 import {
   Table, TableBody, TableCell,
   TableHead, TableRow, IconButton,
@@ -7,16 +6,14 @@ import {
   TableContainer,
   Paper
 } from '@mui/material';
-
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import RestoreIcon from '@mui/icons-material/Restore';
-
 import ProductFilter from './filter';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-
 import { Product } from '@/app/types/product';
-import { checkPermission, useCurrentRole } from '@/lib/permissions';
+import { checkPermission, getUserPermissions } from '@/lib/permissions';
+import { useRoles } from '@/context/RoleContext';
 
 interface ProductTableProps {
   onEdit: (product: Product) => void;
@@ -28,8 +25,7 @@ export default function ProductTable({ onEdit, products = [], onToggleArchive, o
   const searchParams = useSearchParams();
   const viewFilter = (searchParams.get('status') as 'all' | 'active' | 'archived') || 'all';
 
-  const role = useCurrentRole();
-
+  const { role } = useRoles();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -45,6 +41,7 @@ export default function ProductTable({ onEdit, products = [], onToggleArchive, o
 
     router.push(`${pathname}?${params.toString()}`);
   };
+
 
   const getLastActivity = (p: Product) => {
     const created = new Date(p.createdAt).getTime();
@@ -80,24 +77,7 @@ export default function ProductTable({ onEdit, products = [], onToggleArchive, o
     };
   };
 
-  function createData(
-    name: string,
-    calories: number,
-    fat: number,
-    carbs: number,
-    protein: number,
-  ) {
-    return { name, calories, fat, carbs, protein };
-  }
-
-  const rows = [
-    createData('Frozen yoghurt', 159, 6.0, 24, 4.0),
-    createData('Ice cream sandwich', 237, 9.0, 37, 4.3),
-    createData('Eclair', 262, 16.0, 24, 6.0),
-    createData('Cupcake', 305, 3.7, 67, 4.3),
-    createData('Gingerbread', 356, 16.0, 49, 3.9),
-  ];
-
+  const permissions = getUserPermissions(role);
 
   return (
     <>
@@ -118,9 +98,11 @@ export default function ProductTable({ onEdit, products = [], onToggleArchive, o
                 <TableHead>
                   <TableRow sx={{ backgroundColor: '#f8fafc' }}>
                     <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Description</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Last Activity</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700 }}>Actions</TableCell>
+                    <TableCell align={permissions.canEdit || permissions.canArchive ? "left" : "center"} sx={{ fontWeight: 700 }}>Description</TableCell>
+                    <TableCell align={permissions.canEdit || permissions.canArchive ? "left" : "right"} sx={{ fontWeight: 700 }}>Last Activity</TableCell>
+                    {(permissions.canEdit || permissions.canArchive) && (
+                      <TableCell align="right" sx={{ fontWeight: 700 }}>Actions</TableCell>
+                    )}
                   </TableRow>
                 </TableHead>
 
@@ -132,11 +114,11 @@ export default function ProductTable({ onEdit, products = [], onToggleArchive, o
                       <TableRow key={product.id} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
                         <TableCell>{product.name}</TableCell>
 
-                        <TableCell>
+                        <TableCell align={permissions.canEdit || permissions.canArchive ? "left" : "center"}>
                           {product.description || 'No description'}
                         </TableCell>
 
-                        <TableCell>
+                        <TableCell align={permissions.canEdit || permissions.canArchive ? "left" : "right"}>
                           <div style={{ display: 'flex', flexDirection: 'column' }}>
                             <span style={{ fontSize: 13 }}>
                               {activity.formatted}
@@ -154,61 +136,68 @@ export default function ProductTable({ onEdit, products = [], onToggleArchive, o
                           </div>
                         </TableCell>
 
-                        <TableCell align="right">
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                        {(permissions.canEdit || permissions.canArchive || permissions.canDelete) && (
 
-                            {!product.isArchived ? (
-                              <>
-                                <IconButton
-                                  onClick={() => {
-                                    if (checkPermission(role, 'canEdit', 'edit products')) {
-                                      onEdit(product);
-                                    }
-                                  }}
-                                  sx={{ backgroundColor: '#ecdec7', color: '#d97706' }}
-                                >
-                                  <EditIcon fontSize="small" />
-                                </IconButton>
+                          <TableCell align="right">
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
 
-                                <IconButton
-                                  onClick={() => {
-                                    if (checkPermission(role, 'canArchive', 'archive products')) {
-                                      onToggleArchive(product.id);
-                                    }
-                                  }}
-                                  sx={{ backgroundColor: '#fef2f2', color: '#dc2626' }}
-                                >
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
-                              </>
-                            ) : (
-                              <>
-                                <IconButton
-                                  onClick={() => {
-                                    if (checkPermission(role, 'canArchive', 'restore products')) {
-                                      onToggleArchive(product.id);
-                                    }
-                                  }}
-                                  sx={{ backgroundColor: '#dcfce7', color: '#16a34a' }}
-                                >
-                                  <RestoreIcon fontSize="small" />
-                                </IconButton>
+                              {!product.isArchived ? (
+                                <>
+                                  {permissions.canEdit && (
+                                  <IconButton
+                                    onClick={() => {
+                                      if (checkPermission(role, 'canEdit', 'edit products')) {
+                                        onEdit(product);
+                                      }
+                                    }}
+                                    sx={{ backgroundColor: '#ecdec7', color: '#d97706' }}
+                                  >
+                                    <EditIcon fontSize="small" />
+                                  </IconButton> 
+                                )}
+                                  {permissions.canArchive && (
+                                  <IconButton
+                                    onClick={() => {
+                                      if (checkPermission(role, 'canArchive', 'archive products')) {
+                                        onToggleArchive(product.id);
+                                      }
+                                    }}
+                                    sx={{ backgroundColor: '#fef2f2', color: '#dc2626' }}
+                                  >
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton> )}
+                                </>
+                              ) : (
+                                <>
 
-                                <IconButton
-                                  onClick={() => {
-                                    if (checkPermission(role, 'canDelete', 'delete products')) {
-                                      onDelete(product.id);
-                                    }
-                                  }}
-                                  sx={{ backgroundColor: '#fef2f2', color: '#dc2626' }}
-                                >
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
-                              </>
-                            )}
+                                  {permissions.canArchive && (
+                                  <IconButton
+                                    onClick={() => {
+                                      if (checkPermission(role, 'canArchive', 'restore products')) {
+                                        onToggleArchive(product.id);
+                                      }
+                                    }}
+                                    sx={{ backgroundColor: '#dcfce7', color: '#16a34a' }}
+                                  >
+                                    <RestoreIcon fontSize="small" />
+                                  </IconButton> )}
 
-                          </div>
-                        </TableCell>
+                                  {permissions.canDelete && (
+                                  <IconButton
+                                    onClick={() => {
+                                      if (checkPermission(role, 'canDelete', 'delete products')) {
+                                        onDelete(product.id);
+                                      }
+                                    }}
+                                    sx={{ backgroundColor: '#fef2f2', color: '#dc2626' }}
+                                  >
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>)}
+                                </>
+                              )}
+
+                            </div>
+                          </TableCell>)}
                       </TableRow>
                     );
                   })}

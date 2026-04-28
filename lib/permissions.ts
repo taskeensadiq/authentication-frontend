@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-export type UserRole = 'admin' | 'editor' | 'user' | null;
+export type UserRole = 'admin' | 'editor' | 'user';
 
 export interface PermissionCheck {
   canCreate: boolean;
@@ -9,39 +9,49 @@ export interface PermissionCheck {
   canDelete: boolean;
 }
 
-export const getUserPermissions = (role: UserRole): PermissionCheck => {
+export const getUserPermissions = (role: UserRole[]): PermissionCheck => {
   return {
-    canCreate: role === 'admin' || role === 'editor',
-    canEdit: role === 'admin' || role === 'editor',
-    canArchive: role === 'admin',
-    canDelete: role === 'admin',
+    canCreate: role.includes('admin') || role.includes('editor'),
+    canEdit: role.includes('admin') || role.includes('editor'),
+    canArchive: role.includes('admin'),
+    canDelete: role.includes('admin'),
   };
 };
 
 export const checkPermission = (
-  role: UserRole,
+  role: UserRole[],
   operation: keyof PermissionCheck,
   operationName: string
 ): boolean => {
   const permissions = getUserPermissions(role);
 
   if (!permissions[operation]) {
-    // if (typeof window !== 'undefined') {
-      alert(`You do not have permission to ${operationName}.`);
-    // }
-    return false;
+        return false;
   }
 
   return true;
 };
 
-export const useCurrentRole = (): UserRole => {
-  const [role, setRole] = useState<UserRole>(null);
+export const useCurrentRole = (): { role: UserRole[]; loading: boolean } => {
+  const [role, setRole] = useState<UserRole[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storedRole = localStorage.getItem('role') as UserRole;
-    setRole(storedRole);
+    try {
+      const stored = localStorage.getItem('role');
+
+      const parsed =
+        stored && stored !== 'undefined'
+          ? JSON.parse(stored)
+          : [];
+
+      setRole(Array.isArray(parsed) ? parsed : []);
+    } catch {
+      setRole([]);
+    } finally {
+      setLoading(false); 
+    }
   }, []);
 
-  return role;
+  return { role, loading };
 };
