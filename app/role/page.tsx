@@ -1,5 +1,7 @@
+
 'use client';
 
+import { useAuth } from '@/context/AuthContext';
 import {
   Dialog,
   DialogTitle,
@@ -10,15 +12,17 @@ import {
   FormControlLabel,
 } from '@mui/material';
 import { useEffect, useState } from 'react';
-import { UserRole } from '@/lib/permissions';
 
-const AVAILABLE_ROLES: UserRole[] = ['admin', 'editor', 'user'];
+interface Role {
+  id: string;
+  name: string;
+}
 
 interface Props {
   open: boolean;
-  currentRoles: UserRole[];
+  currentRoles: string[]; // role names from backend
   onClose: () => void;
-  onConfirm: (role: UserRole[]) => void;
+  onConfirm: (roleIds: string[]) => void;
 }
 
 export default function RoleModal({
@@ -27,25 +31,82 @@ export default function RoleModal({
   onClose,
   onConfirm,
 }: Props) {
-  const [selected, setSelected] = useState<UserRole[]>([]);
+  const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
+  const [selected, setSelected] = useState<string[]>([]);
+  const { fetchWhoAmI } = useAuth();
 
   useEffect(() => {
-    if (open) {
-      setSelected(currentRoles || []);
-    }
-  }, [open, currentRoles]);
+    if (!open) return;
 
-  const toggleRole = (role: UserRole) => {
+    const fetchRoles = async () => {
+      try {
+        const token = localStorage.getItem('token');
+
+        if (!token) {
+          setAvailableRoles([]);
+          return;
+        }
+
+        const res = await fetch('http://localhost:4000/roles', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) {
+          throw new Error(`Failed to load roles: ${res.status}`);
+        }
+
+        const data = await res.json();
+        setAvailableRoles(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Role fetch failed', error);
+        setAvailableRoles([]);
+      }
+    };
+
+    fetchRoles();
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || availableRoles.length === 0) return;
+
+    const normalizedCurrent = currentRoles.map((role) => String(role).toLowerCase());
+    setSelected(
+      availableRoles
+        .filter((role) => normalizedCurrent.includes(role.name.toLowerCase()))
+        .map((role) => role.id)
+    );
+  }, [open, currentRoles, availableRoles]);
+
+  // const toggleRole = (roleName: string) => {
+  //   setSelected((prev) =>
+  //     prev.includes(roleName)
+  //       ? prev.filter((r) => r !== roleName)
+  //       : [...prev, roleName]
+  //   );
+  // };
+
+  const toggleRole = (roleId: string) => {
     setSelected((prev) =>
-      prev.includes(role)
-        ? prev.filter((r) => r !== role)
-        : [...prev, role]
+      prev.includes(roleId)
+        ? prev.filter((r) => r !== roleId)
+        : [...prev, roleId]
     );
   };
 
-  const handleConfirm = () => {
-    onConfirm(selected);
-    
+  const handleConfirm = async () => {
+
+    //    localStorage.setItem(
+    //   'roles',
+    //   JSON.stringify(
+    //     availableRoles
+    //       .filter(r => selected.includes(r.id))
+    //       .map(r => r.name)
+    //   )
+    // );
+    await onConfirm(selected.length > 0 ? selected : []);
+    // await fetchWhoAmI();
     onClose();
   };
 
@@ -54,16 +115,16 @@ export default function RoleModal({
       <DialogTitle>Select Roles</DialogTitle>
 
       <DialogContent>
-        {AVAILABLE_ROLES.map((role) => (
+        {availableRoles.map((role) => (
           <FormControlLabel
-            key={role}
+            key={role.id}
             control={
               <Checkbox
-                checked={selected.includes(role)}
-                onChange={() => toggleRole(role)}
+                checked={selected.includes(role.id)}
+                onChange={() => toggleRole(role.id)}
               />
             }
-            label={role}
+            label={role.name}
           />
         ))}
       </DialogContent>

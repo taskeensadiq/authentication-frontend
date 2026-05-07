@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v13-appRouter";
-import { RoleProvider } from "@/context/RoleContext";
+// import { RoleProvider } from "@/context/RoleContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,9 +33,9 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <AppRouterCacheProvider>
         <AuthProvider>
-          <RoleProvider>
+          {/* <RoleProvider> */}
           {children}
-          </RoleProvider>
+          {/* </RoleProvider> */}
         </AuthProvider>
         </AppRouterCacheProvider>
       </body>

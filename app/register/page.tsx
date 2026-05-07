@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   TextField,
@@ -27,18 +27,42 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const [role, setRole] = useState('user');
+  const [role, setRole] = useState('USER');
+  const [availableRoles, setAvailableRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
 
   const router = useRouter();
+
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        const res = await fetch('http://localhost:4000/roles');
+        if (!res.ok) {
+          throw new Error(`Failed to load roles: ${res.status}`);
+        }
+        const data = await res.json();
+        const roleNames = Array.isArray(data) ? data.map((role: any) => String(role.name)) : [];
+        setAvailableRoles(roleNames);
+
+        if (!roleNames.includes(role)) {
+          setRole(roleNames.includes('USER') ? 'USER' : roleNames[0] || 'USER');
+        }
+      } catch (err) {
+        console.error('Role fetch failed', err);
+      }
+    };
+
+    fetchRoles();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus(null);
 
     if (password !== confirmPassword) {
-      setStatus({ type: 'error', text: 'Passwords do not match!' });
+      alert('Passwords do not match!');
+      // setStatus({ type: 'error', text: 'Passwords do not match!' });
       return;
     }
 
@@ -52,16 +76,17 @@ export default function RegisterPage() {
       });
 
       const data = await res.json();
-      const userRole = data.user?.role;
+      const userRole = data.user?.roles;
 
       if (res.ok) {
         const normalizedRoles = Array.isArray(userRole)
           ? userRole
           : [userRole];
 
-        localStorage.setItem('role', JSON.stringify(normalizedRoles));
+        // localStorage.setItem('role', JSON.stringify(normalizedRoles));
 
-        setStatus({ type: 'success', text: 'Account created! Redirecting...' });
+        alert('Account created successfully! Redirecting to login...');
+        // setStatus({ type: 'success', text: 'Account created! Redirecting...' });
 
         setTimeout(() => router.push('/login'), 2000);
       } else {
@@ -70,21 +95,32 @@ export default function RegisterPage() {
             ? 'This email is already registered.'
             : data.message || 'Registration failed';
 
-        setStatus({ type: 'error', text: errorMessage });
+        alert(errorMessage);
+        // setStatus({ type: 'error', text: errorMessage });
       }
     } catch {
-      setStatus({ type: 'error', text: 'Server connection failed.' });
+      alert('Server connection failed.');
+      // setStatus({ type: 'error', text: 'Server connection failed.' });
     } finally {
       setLoading(false);
     }
   };
 
-   return (
+  return (
     <>
-     <Grid container sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 2, minHeight: '100vh'}}>
+      <Grid container sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 2, minHeight: '100vh' }}>
         <Grid item xs={12} md={5} lg={4}>
           <Card sx={{ p: 4, borderRadius: 4, background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(10px)', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', border: '1px solid rgba(226,232,240,0.7)' }}>
             <Box sx={{ textAlign: 'center', mb: 3 }}>
+              {/* {status && (
+                <Alert
+                  severity={status.type}
+                  sx={{ mb: 2 }}
+                  onClose={() => setStatus(null)}
+                >
+                  {status.text}
+                </Alert>
+              )} */}
               <Typography variant="h5" sx={{ fontWeight: 800, color: '#0f172a' }}>
                 Create Account
               </Typography>
@@ -92,7 +128,7 @@ export default function RegisterPage() {
                 Just to Manage Your Dashboard
               </Typography>
             </Box>
-           <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit}>
               <TextField
                 fullWidth
                 label="Email Address"
@@ -150,14 +186,20 @@ export default function RegisterPage() {
                 size="small"
                 sx={{ mb: 3 }}
               >
-                <MenuItem value="user">User</MenuItem>
-                <MenuItem value="editor">Editor</MenuItem>
-                <MenuItem value="admin">Admin</MenuItem>
+                {availableRoles.length > 0 ? (
+                  availableRoles.map((roleName) => (
+                    <MenuItem key={roleName} value={roleName}>
+                      {roleName.charAt(0).toUpperCase() + roleName.slice(1).toLowerCase()}
+                    </MenuItem>
+                  ))
+                ) : (
+                  <MenuItem value="USER">User</MenuItem>
+                )}
               </TextField>
               <Button
                 type="submit"
                 fullWidth
-                variant="contained" 
+                variant="contained"
                 disabled={loading}
                 sx={{
                   py: 1.2,

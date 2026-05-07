@@ -15,7 +15,9 @@ import { checkPermission, getUserPermissions } from '@/lib/permissions';
 import Grid from '@mui/material/Grid';
 import { useEffect, useState } from 'react';
 import RoleModal from '@/app/role/page';
-import { useRoles } from '@/context/RoleContext';
+import CreateRoleModal from '@/app/role/create/page';
+import { useAuth } from '@/context/AuthContext';
+
 
 export default function Page() {
   const router = useRouter();
@@ -31,16 +33,37 @@ export default function Page() {
     ? localStorage.getItem('token')
     : null;
 
-  const { role, setRole } = useRoles();
-  const permissions = getUserPermissions(role);
+  // const { role, setRole } = useRoles();
+  // const permissions = getUserPermissions(role);
+  const { user, hasPermission, fetchWhoAmI } = useAuth();
+  const permissions = user?.permissions || [];
   const [open, setOpen] = useState(false);
+  const [openCreateRole, setOpenCreateRole] = useState(false);
   const { products, setProducts, meta } = useProducts(page, limit, status);
   const totalPages = meta.totalPages;
 
   const [pageSize, setPageSize] = useState(limit);
 
+  // const handleDelete = async (id: string) => {
+
+  //   if (!checkPermission(role, 'canDelete', 'delete products')) return;
+
+  //   const product = products.find(p => p.id === id);
+  //   if (!product) return;
+
+  //   const confirmed = confirm(
+  //     `Are you sure you want to permanently delete "${product.name}"?`
+  //   );
+
+  //   if (!confirmed) return;
+
+  //   await deleteProductPermanent(token!, id);
+
+  //   setProducts(prev => prev.filter(p => p.id !== id));
+  // };
+
   const handleDelete = async (id: string) => {
-    if (!checkPermission(role, 'canDelete', 'delete products')) return;
+    if (!hasPermission('product:delete')) return;
 
     const product = products.find(p => p.id === id);
     if (!product) return;
@@ -56,8 +79,31 @@ export default function Page() {
     setProducts(prev => prev.filter(p => p.id !== id));
   };
 
+  // const handleToggleArchive = async (id: string) => {
+  //   if (!checkPermission(role, 'canArchive', 'archive or restore products')) return;
+
+  //   const product = products.find(p => p.id === id);
+  //   if (!product) return;
+
+  //   const action = product.isArchived ? 'restore' : 'archive';
+
+  //   const confirmed = confirm(`Are you sure you want to ${action} ${product.name}?`);
+  //   if (!confirmed) return;
+
+  //   const updated = await toggleArchiveProduct(token!, id);
+
+  //   setProducts(prev =>
+  //     prev.map(p => (p.id === id ? updated : p))
+  //   );
+  // };
+
+  // useEffect(() => {
+  //   localStorage.setItem('role', JSON.stringify(role));
+  //   console.log('Current role:', role);
+  // }, [role]);
+
   const handleToggleArchive = async (id: string) => {
-    if (!checkPermission(role, 'canArchive', 'archive or restore products')) return;
+    if (!hasPermission('product:archive')) return;
 
     const product = products.find(p => p.id === id);
     if (!product) return;
@@ -74,14 +120,10 @@ export default function Page() {
     );
   };
 
-  // useEffect(() => {
-  //   localStorage.setItem('role', JSON.stringify(role));
-  //   console.log('Current role:', role);
-  // }, [role]);
+
 
   const handleLogout = () => {
     localStorage.removeItem('token');
-    localStorage.removeItem('role');
     router.push('/login');
   };
 
@@ -126,35 +168,64 @@ export default function Page() {
               borderColor: '#3b82f6',
             },
           }} >
-            Role ({role.length})
+            Role ({user?.roles?.length || 0})
           </Button>
+
+          {hasPermission('role:create') && (
+            <Button
+              variant="outlined"
+              onClick={() => setOpenCreateRole(true)}
+              sx={{
+                height: 50,
+                borderRadius: 2,
+                fontWeight: 600,
+                textTransform: 'none',
+                backgroundColor: 'white',
+                color: '#10b981',
+                borderColor: '#10b981',
+                '&:hover': {
+                  backgroundColor: '#ecfdf5',
+                  borderColor: '#10b981',
+                },
+              }}
+            >
+              Create Role
+            </Button>
+          )}
 
           <RoleModal
             open={open}
-            currentRoles={role}
+            currentRoles={user?.roles || []}
             onClose={() => setOpen(false)}
-            onConfirm={async (selectedRoles) => {
-              console.log('Selected roles:', selectedRoles);
-
+            onConfirm={async (selectedRoleIds) => {
               if (!token) {
-                alert('Unable to update roles: missing auth token.');
+                alert('Missing token');
                 return;
               }
 
               try {
-                const response = await updateUserRoles(token, selectedRoles);
+                const response = await updateUserRoles(token, selectedRoleIds);
+
                 if (response?.access_token) {
                   localStorage.setItem('token', response.access_token);
+                  // window.location.reload();
                 }
-                setRole(selectedRoles);
+                await fetchWhoAmI();
               } catch (error) {
-                console.error('Failed to update roles:', error);
-                alert('Could not save roles to the server. Please try again.');
-              } finally {
-                setOpen(false);
+                console.error(error);
+                alert('Failed to update roles');
               }
             }}
           />
+
+          <CreateRoleModal
+            open={openCreateRole}
+            onClose={() => setOpenCreateRole(false)}
+            onSuccess={() => {
+              // window.location.reload();
+            }}
+          />
+
           <Button
             variant="outlined"
             onClick={handleLogout}
@@ -173,7 +244,7 @@ export default function Page() {
           >
             Logout
           </Button>
-          {permissions.canCreate && (
+          {/* {permissions.canCreate && (
             <Button
               disabled={!permissions.canCreate}
               variant="contained"
@@ -197,7 +268,42 @@ export default function Page() {
               }}
             >
               Add Product
-            </Button>)}
+            </Button>)} */}
+
+          {hasPermission('product:create') && (
+            // <Button
+            //   variant="contained"
+            //   startIcon={<AddIcon />}
+            //   onClick={() => router.push('/products/form')}
+            // >
+            //   Add Product
+            // </Button>
+
+
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => router.push('/products/form')}
+              sx={{
+                height: 50,
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                borderRadius: 2,
+                fontWeight: 600,
+                textTransform: 'none',
+                boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.1), 0 2px 4px -1px rgba(59, 130, 246, 0.06)'
+                ,
+                '&:hover': {
+                  backgroundColor: '#2563eb',
+                },
+                '&:active': {
+                  backgroundColor: '#1d4ed8',
+                }
+              }}
+            >
+              Add Product
+            </Button>
+          )}
 
         </Grid>
       </Grid>
@@ -205,8 +311,13 @@ export default function Page() {
 
       <ProductTable
         products={products}
+        // onEdit={(product) => {
+        //   if (checkPermission(role, 'canEdit', 'edit products')) {
+        //     router.push(`/products/form/${product.id}`);
+        //   }
+        // }}
         onEdit={(product) => {
-          if (checkPermission(role, 'canEdit', 'edit products')) {
+          if (hasPermission('product:update')) {
             router.push(`/products/form/${product.id}`);
           }
         }}

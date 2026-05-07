@@ -13,7 +13,9 @@ import ProductFilter from './filter';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Product } from '@/app/types/product';
 import { checkPermission, getUserPermissions } from '@/lib/permissions';
-import { useRoles } from '@/context/RoleContext';
+import { useAuth } from '@/context/AuthContext';
+import { on } from 'events';
+// import { useRoles } from '@/context/RoleContext';
 
 interface ProductTableProps {
   onEdit: (product: Product) => void;
@@ -25,7 +27,7 @@ export default function ProductTable({ onEdit, products = [], onToggleArchive, o
   const searchParams = useSearchParams();
   const viewFilter = (searchParams.get('status') as 'all' | 'active' | 'archived') || 'all';
 
-  const { role } = useRoles();
+  // const { role } = useRoles();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -77,7 +79,9 @@ export default function ProductTable({ onEdit, products = [], onToggleArchive, o
     };
   };
 
-  const permissions = getUserPermissions(role);
+  // const permissions = getUserPermissions(role);
+  const { hasPermission, user, hasRole } = useAuth();
+
 
   return (
     <>
@@ -98,9 +102,9 @@ export default function ProductTable({ onEdit, products = [], onToggleArchive, o
                 <TableHead>
                   <TableRow sx={{ backgroundColor: '#f8fafc' }}>
                     <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
-                    <TableCell align={permissions.canEdit || permissions.canArchive ? "left" : "center"} sx={{ fontWeight: 700 }}>Description</TableCell>
-                    <TableCell align={permissions.canEdit || permissions.canArchive ? "left" : "right"} sx={{ fontWeight: 700 }}>Last Activity</TableCell>
-                    {(permissions.canEdit || permissions.canArchive) && (
+                    <TableCell align={hasPermission('product:update') || hasPermission('product:archive') ? "left" : "center"} sx={{ fontWeight: 700 }}>Description</TableCell>
+                    <TableCell align={hasPermission('product:update') || hasPermission('product:archive') || hasPermission('product:delete') ? "left" : "right"} sx={{ fontWeight: 700 }}>Last Activity</TableCell>
+                    {(hasPermission('product:update') || hasPermission('product:archive') || hasPermission('product:delete')  ) && (
                       <TableCell align="right" sx={{ fontWeight: 700 }}>Actions</TableCell>
                     )}
                   </TableRow>
@@ -114,11 +118,11 @@ export default function ProductTable({ onEdit, products = [], onToggleArchive, o
                       <TableRow key={product.id} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
                         <TableCell>{product.name}</TableCell>
 
-                        <TableCell align={permissions.canEdit || permissions.canArchive ? "left" : "center"}>
+                        <TableCell align={hasPermission('product:update') || hasPermission('product:archive') ? "left" : "center"}>
                           {product.description || 'No description'}
                         </TableCell>
 
-                        <TableCell align={permissions.canEdit || permissions.canArchive ? "left" : "right"}>
+                        <TableCell align={hasPermission('product:update') || hasPermission('product:archive') || hasPermission('product:delete') ? "left" : "right"}>
                           <div style={{ display: 'flex', flexDirection: 'column' }}>
                             <span style={{ fontSize: 13 }}>
                               {activity.formatted}
@@ -136,63 +140,55 @@ export default function ProductTable({ onEdit, products = [], onToggleArchive, o
                           </div>
                         </TableCell>
 
-                        {(permissions.canEdit || permissions.canArchive || permissions.canDelete) && (
+                        {(hasPermission('product:update') || hasPermission('product:archive') || hasPermission('product:delete')) && (
 
                           <TableCell align="right">
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
 
                               {!product.isArchived ? (
                                 <>
-                                  {permissions.canEdit && (
-                                  <IconButton
-                                    onClick={() => {
-                                      if (checkPermission(role, 'canEdit', 'edit products')) {
+                                  {hasPermission('product:update') && (
+                                    <IconButton
+                                      onClick={() => {
                                         onEdit(product);
-                                      }
-                                    }}
-                                    sx={{ backgroundColor: '#ecdec7', color: '#d97706' }}
-                                  >
-                                    <EditIcon fontSize="small" />
-                                  </IconButton> 
-                                )}
-                                  {permissions.canArchive && (
-                                  <IconButton
-                                    onClick={() => {
-                                      if (checkPermission(role, 'canArchive', 'archive products')) {
+                                      }}
+                                      sx={{ backgroundColor: '#ecdec7', color: '#d97706' }}
+                                    >
+                                      <EditIcon fontSize="small" />
+                                    </IconButton>
+                                  )}
+                                  {hasPermission('product:archive') && (
+                                    <IconButton
+                                      onClick={() => {
                                         onToggleArchive(product.id);
-                                      }
-                                    }}
-                                    sx={{ backgroundColor: '#fef2f2', color: '#dc2626' }}
-                                  >
-                                    <DeleteIcon fontSize="small" />
-                                  </IconButton> )}
+                                      }}
+                                      sx={{ backgroundColor: '#fef2f2', color: '#dc2626' }}
+                                    >
+                                      <DeleteIcon fontSize="small" />
+                                    </IconButton>)}
                                 </>
                               ) : (
                                 <>
 
-                                  {permissions.canArchive && (
-                                  <IconButton
-                                    onClick={() => {
-                                      if (checkPermission(role, 'canArchive', 'restore products')) {
+                                  {hasPermission('product:archive') && (
+                                    <IconButton
+                                      onClick={() => {
                                         onToggleArchive(product.id);
-                                      }
-                                    }}
-                                    sx={{ backgroundColor: '#dcfce7', color: '#16a34a' }}
-                                  >
-                                    <RestoreIcon fontSize="small" />
-                                  </IconButton> )}
+                                      }}
+                                      sx={{ backgroundColor: '#dcfce7', color: '#16a34a' }}
+                                    >
+                                      <RestoreIcon fontSize="small" />
+                                    </IconButton>)}
 
-                                  {permissions.canDelete && (
-                                  <IconButton
-                                    onClick={() => {
-                                      if (checkPermission(role, 'canDelete', 'delete products')) {
+                                  {hasPermission('product:delete') && (
+                                    <IconButton
+                                      onClick={() => {
                                         onDelete(product.id);
-                                      }
-                                    }}
-                                    sx={{ backgroundColor: '#fef2f2', color: '#dc2626' }}
-                                  >
-                                    <DeleteIcon fontSize="small" />
-                                  </IconButton>)}
+                                      }}
+                                      sx={{ backgroundColor: '#fef2f2', color: '#dc2626' }}
+                                    >
+                                      <DeleteIcon fontSize="small" />
+                                    </IconButton>)}
                                 </>
                               )}
 

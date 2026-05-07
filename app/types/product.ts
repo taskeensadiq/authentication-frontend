@@ -8,9 +8,3 @@ export interface Product {
   archivedAt: string;
   justRestored?: boolean;
 }
-
-// export interface ProductDTO {
-//   name: string;
-//   description: string;
-//   editingId: string;
-// }

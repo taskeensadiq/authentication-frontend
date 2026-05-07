@@ -5,33 +5,35 @@ import { useRouter, useParams } from 'next/navigation';
 import ProductForm from '@/components/products/productForm';
 import { getProductById, updateProduct } from '@/app/services/productService';
 import { checkPermission, getUserPermissions } from '@/lib/permissions';
-import { useRoles } from '@/context/RoleContext';
+import { useAuth } from '@/context/AuthContext';
+// import { useRoles } from '@/context/RoleContext';
 
 export default function EditProductPage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
+  const { token, hasPermission, loading } = useAuth();
 
   const [initialData, setInitialData] = useState<any>(null);
 
-  const token =
-    typeof window !== 'undefined'
-      ? localStorage.getItem('token')
-      : null;
+  // const token =
+  //   typeof window !== 'undefined'
+  //     ? localStorage.getItem('token')
+  //     : null;
 
-  const { role, loading } = useRoles();
+  // const { role, loading } = useRoles();
 
   useEffect(() => {
-    if (role !== null && !checkPermission(role, 'canEdit', 'edit products')) {
+    if (!loading && !hasPermission('product:update')) {
       router.push('/products/crud');
     }
-  }, [role, router]);
+  }, [loading, hasPermission, router]);
 
   useEffect(() => {
     if (loading) return; 
 
     if (!id || !token) return;
-    const permissions = getUserPermissions(role);
-    if (!permissions?.canEdit) {
+    // const permissions = getUserPermissions(role);
+    if (!hasPermission('product:update')) {
       router.replace('/products/crud');
     }
     const fetchData = async () => {
@@ -43,7 +45,7 @@ export default function EditProductPage() {
   }, [id, token]);
 
   const handleSubmit = async (data: any) => {
-    if (!checkPermission(role, 'canEdit', 'edit products')) return;
+    if (!hasPermission('product:update')) return;
 
     await updateProduct(token!, id, data);
     router.push('/products/crud');

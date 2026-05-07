@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { useRoles } from '@/context/RoleContext';
+// import { useRoles } from '@/context/RoleContext';
 import { UserRole } from '@/lib/permissions';
 import { useRouter } from 'next/navigation';
 import {
@@ -18,56 +18,101 @@ import {
 
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import { json } from 'stream/consumers';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login } = useAuth();
-  const { setRole } = useRoles();
+  const { login, fetchWhoAmI } = useAuth();
+  // const { setRole } = useRoles();
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
 
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+
+  //   const res = await fetch('http://localhost:4000/auth/login', {
+  //     method: 'POST',
+  //     headers: { 'Content-Type': 'application/json' },
+  //     body: JSON.stringify({ email, password }),
+  //   });
+
+  //   const data = await res.json();
+
+  //   if (!res.ok) {
+  //     alert(data.message || 'Login failed');
+  //     return;
+  //   }
+
+  //   const token = data.access_token;
+  //   login(token);
+  //   await fetchWhoAmI(token);
+  //   const user = data.user;
+
+  //   if (!token || !user) {
+  //     alert('Invalid backend response');
+  //     return;
+  //   }
+
+
+  //   localStorage.setItem('token', token);
+  //   // localStorage.setItem('user', JSON.stringify(user));
+  //   router.push('/products/crud');
+  // };
+
+
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    try {
-      const res = await fetch('http://localhost:4000/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
+  const res = await fetch('http://localhost:4000/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
 
-      const data = await res.json();
-      const rawRole = data.user?.role ?? data.role ?? [];
+  const data = await res.json();
 
-      console.log('Raw role from response:', rawRole);
+  if (!res.ok) {
+    alert(data.message || 'Login failed');
+    return;
+  }
 
-      // const normalizeRole = (value: unknown): UserRole[] => {
-      //   const roles = Array.isArray(value) ? value : [value];
-      //   return roles.filter(
-      //     (role): role is UserRole =>
-      //       role === 'admin' || role === 'editor' || role === 'user'
-      //   );
-      // };
+  const token = data.access_token;
 
-      const userRole = rawRole;
+  if (!token) {
+    alert('Invalid backend response');
+    return;
+  }
 
-      if (res.ok && data.access_token) {
-        login(data.access_token, userRole);
-        setRole(userRole);
+  // 1. store token
+  login(token);
 
-        if (userRole) {
-          localStorage.setItem('role', JSON.stringify(userRole));
-        }
+  // 2. load real user from backend
+  // await fetchWhoAmI(token);
 
-        router.push('/products/crud');
-      } else {
-        alert(data.message || 'Login failed');
+  // 3. navigate AFTER user is loaded
+  router.push('/products/crud');
+};
+
+
+  useEffect(() => {
+    const checkAuth = () => {
+      const token = localStorage.getItem('token');
+
+      if (!token) {
+        router.push('/login');
       }
-    } catch (err) {
-      alert('Backend is offline! Check Port 4000.');
-    }
-  };
+    };
+
+    checkAuth();
+
+    window.addEventListener('storage', checkAuth);
+
+    return () => {
+      window.removeEventListener('storage', checkAuth);
+    };
+  }, []);
+
 
   return (
     <>
@@ -75,6 +120,7 @@ export default function LoginPage() {
         <Grid item xs={12} md={5} lg={4}>
           <Card sx={{ p: 4, borderRadius: 4, background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(10px)', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', border: '1px solid rgba(226,232,240,0.7)' }}>
             <Box sx={{ textAlign: 'center', mb: 3 }}>
+              
               <Typography variant="h5" sx={{ fontWeight: 800, color: '#0f172a' }}>
                 Login
               </Typography>
