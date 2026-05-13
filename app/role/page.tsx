@@ -20,7 +20,7 @@ interface Role {
 
 interface Props {
   open: boolean;
-  currentRoles: string[]; // role names from backend
+  currentRoles: string[]; 
   onClose: () => void;
   onConfirm: (roleIds: string[]) => void;
 }
@@ -115,7 +115,7 @@ export default function RoleModal({
       <DialogTitle>Select Roles</DialogTitle>
 
       <DialogContent>
-        {availableRoles.map((role) => (
+        {/* {availableRoles.map((role) => (
           <FormControlLabel
             key={role.id}
             control={
@@ -126,13 +126,30 @@ export default function RoleModal({
             }
             label={role.name}
           />
-        ))}
+        ))} */}
+
+        {availableRoles
+  .filter((role) => role.name !== 'SUPER_ADMIN')
+  .map((role) => (
+    <FormControlLabel
+      key={role.id}
+      control={
+        <Checkbox
+          checked={selected.includes(role.id)}
+          onChange={() => toggleRole(role.id)}
+        />
+      }
+      label={role.name}
+    />
+))}
+
       </DialogContent>
 
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
 
-        <Button variant="contained" onClick={handleConfirm}>
+        <Button variant="contained" onClick={handleConfirm}   disabled={selected.length === 0}
+>
           Confirm
         </Button>
       </DialogActions>

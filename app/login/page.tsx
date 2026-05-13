@@ -72,10 +72,23 @@ export default function LoginPage() {
 
   const data = await res.json();
 
+  // if (!res.ok) {
+  //   alert(data.message || 'Login failed');
+  //   return;
+  // }
+
   if (!res.ok) {
-    alert(data.message || 'Login failed');
-    return;
+  let errorMessage = 'Login failed';
+
+  if (Array.isArray(data.message)) {
+    errorMessage = data.message.join(', ');
+  } else if (typeof data.message === 'string') {
+    errorMessage = data.message;
   }
+
+  alert(errorMessage);
+  return;
+}
 
   const token = data.access_token;
 

@@ -13,7 +13,7 @@ import { Button, Box, Typography } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import { checkPermission, getUserPermissions } from '@/lib/permissions';
 import Grid from '@mui/material/Grid';
-import { useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import RoleModal from '@/app/role/page';
 import CreateRoleModal from '@/app/role/create/page';
 import { useAuth } from '@/context/AuthContext';
@@ -32,11 +32,8 @@ export default function Page() {
   const token = typeof window !== 'undefined'
     ? localStorage.getItem('token')
     : null;
-
-  // const { role, setRole } = useRoles();
-  // const permissions = getUserPermissions(role);
   const { user, hasPermission, fetchWhoAmI } = useAuth();
-  const permissions = user?.permissions || [];
+  // const permissions = user?.permissions || [];
   const [open, setOpen] = useState(false);
   const [openCreateRole, setOpenCreateRole] = useState(false);
   const { products, setProducts, meta } = useProducts(page, limit, status);
@@ -44,23 +41,9 @@ export default function Page() {
 
   const [pageSize, setPageSize] = useState(limit);
 
-  // const handleDelete = async (id: string) => {
-
-  //   if (!checkPermission(role, 'canDelete', 'delete products')) return;
-
-  //   const product = products.find(p => p.id === id);
-  //   if (!product) return;
-
-  //   const confirmed = confirm(
-  //     `Are you sure you want to permanently delete "${product.name}"?`
-  //   );
-
-  //   if (!confirmed) return;
-
-  //   await deleteProductPermanent(token!, id);
-
-  //   setProducts(prev => prev.filter(p => p.id !== id));
-  // };
+  // useEffect(() => {
+  //   fetchWhoAmI();
+  // }, [])
 
   const handleDelete = async (id: string) => {
     if (!hasPermission('product:delete')) return;
@@ -79,29 +62,6 @@ export default function Page() {
     setProducts(prev => prev.filter(p => p.id !== id));
   };
 
-  // const handleToggleArchive = async (id: string) => {
-  //   if (!checkPermission(role, 'canArchive', 'archive or restore products')) return;
-
-  //   const product = products.find(p => p.id === id);
-  //   if (!product) return;
-
-  //   const action = product.isArchived ? 'restore' : 'archive';
-
-  //   const confirmed = confirm(`Are you sure you want to ${action} ${product.name}?`);
-  //   if (!confirmed) return;
-
-  //   const updated = await toggleArchiveProduct(token!, id);
-
-  //   setProducts(prev =>
-  //     prev.map(p => (p.id === id ? updated : p))
-  //   );
-  // };
-
-  // useEffect(() => {
-  //   localStorage.setItem('role', JSON.stringify(role));
-  //   console.log('Current role:', role);
-  // }, [role]);
-
   const handleToggleArchive = async (id: string) => {
     if (!hasPermission('product:archive')) return;
 
@@ -119,7 +79,6 @@ export default function Page() {
       prev.map(p => (p.id === id ? updated : p))
     );
   };
-
 
 
   const handleLogout = () => {

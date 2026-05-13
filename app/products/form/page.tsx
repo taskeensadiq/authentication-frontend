@@ -39,6 +39,12 @@ export default function CreateProductPage() {
   const handleSubmit = async (data: any) => {
     if (!hasPermission('product:create')) return;
 
+    if (!data.name || data.name.trim() === "") {
+    alert("Product Name is required");
+    return;
+  }
+
+
     await createProduct(token!, data);
     router.push('/products/crud');
   };
